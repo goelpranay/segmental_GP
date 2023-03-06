@@ -8,40 +8,47 @@ from torchvision.models import inception_v3, Inception_V3_Weights
 class Inception(pl.LightningModule):
     def __init__(self):
         super().__init__()
-        self.inception = inception_v3(weights=Inception_V3_Weights.DEFAULT) # hack to use inception instead
+        self.inception = inception_v3(weights=Inception_V3_Weights.DEFAULT, aux_logits=False)
         num_features = self.inception.fc.in_features
         self.inception.fc = torch.nn.Linear(num_features, 1)
 
     def forward(self, x):
         logits = self.inception(x)
+        # logits = torch.flatten(logits, 1)
+        logits = logits.squeeze(1)
         return logits
 
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
-        targets_resized = y.view(logits.size())
-        loss = F.mse_loss(logits, targets_resized)
+        # targets_resized = y.view(logits.size())
+        loss = F.mse_loss(logits, y)
         self.log('train_loss', loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
-        targets_resized = y.view(logits.size())
-        loss = F.mse_loss(logits, targets_resized)
+        # targets_resized = y.view(logits.size())
+        loss = F.l1_loss(logits, y)
         self.log('val_loss', loss)
+        return loss
 
     def validation_epoch_end(self, outputs):
-        # val_loss_mean = torch.stack([x["val_loss"] for x in outputs]).mean()
-        # preds = torch.cat([x["val_preds"] for x in outputs], dim=0)
-        # self.logger.experiment.add_scalar(
-        #     "val_loss_epoch", val_loss_mean, self.current_epoch
-        # )
-        # self.log("val_loss", val_loss_mean, prog_bar=True)
-        # return {"val_loss": val_loss_mean, "val_preds": preds}
-
         avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-        self.log('avg_val_loss', avg_loss,prog_bar=True)
+        self.log('avg_val_loss', avg_loss)
+
+    # def validation_epoch_end(self, outputs):
+    #     # val_loss_mean = torch.stack([x["val_loss"] for x in outputs]).mean()
+    #     # preds = torch.cat([x["val_preds"] for x in outputs], dim=0)
+    #     # self.logger.experiment.add_scalar(
+    #     #     "val_loss_epoch", val_loss_mean, self.current_epoch
+    #     # )
+    #     # self.log("val_loss", val_loss_mean, prog_bar=True)
+    #     # return {"val_loss": val_loss_mean, "val_preds": preds}
+    #
+    #     avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+    #     self.log('avg_val_loss', avg_loss,prog_bar=True)
 
     def configure_optimizers(self):
         # optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)

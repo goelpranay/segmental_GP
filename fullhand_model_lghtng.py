@@ -4,9 +4,27 @@ from torchvision.models import resnet50, ResNet50_Weights
 from torchvision.models import resnet152, ResNet152_Weights
 from torchvision.models import inception_v3, Inception_V3_Weights
 
+def squared_epsilon_insensitive_loss(y_hat, y, epsilon):
+    """
+    Computes the squared epsilon-insensitive loss between y_hat and y.
+
+    Args:
+        y_hat (torch.Tensor): Predicted target values, of shape (batch_size,).
+        y (torch.Tensor): True target values, of shape (batch_size,).
+        epsilon (float): Size of the insensitive region.
+
+    Returns:
+        torch.Tensor: The squared epsilon-insensitive loss, of shape ().
+    """
+    loss = torch.max(torch.tensor(0, dtype=torch.float32), torch.abs(y - y_hat) - epsilon) ** 2
+    return loss.mean()
+
 class ResNet50(pl.LightningModule):
-    def __init__(self):
+    def __init__(self, epsilon=6):
         super().__init__()
+
+        self.epsilon = epsilon
+
         self.resnet = resnet50(weights=ResNet50_Weights.DEFAULT)
         num_features = self.resnet.fc.in_features
         self.resnet.fc = torch.nn.Linear(num_features, 1)
@@ -21,7 +39,8 @@ class ResNet50(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
-        loss = torch.nn.functional.mse_loss(logits, y.float().unsqueeze(1))
+        loss = squared_epsilon_insensitive_loss(logits, y, self.epsilon)
+        # loss = torch.nn.functional.mse_loss(logits, y.float().unsqueeze(1))
         self.log("train_loss", loss)
         return loss
 

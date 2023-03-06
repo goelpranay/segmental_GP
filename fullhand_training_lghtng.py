@@ -23,8 +23,8 @@ from pytorch_lightning.callbacks import LearningRateMonitor
 # from torch.utils.tensorboard import SummaryWriter
 
 from customdataset import CustomDataset
-from fullhand_model_lghtng import ResNet50
-# from fullhand_model_inception_lghtng import Inception
+# from fullhand_model_lghtng import ResNet50
+from fullhand_model_inception_lghtng import Inception
 
 # define path to the folder and csv file
 img_folder_path = "./data/fh_train"
@@ -41,7 +41,7 @@ transform = transforms.Compose(
         transforms.RandomAdjustSharpness(sharpness_factor=1.5),
         transforms.RandomRotation(degrees=(-20, 20)),
         transforms.RandomCrop(size=(500, 500)),
-        transforms.Resize((224, 224), interpolation=transforms.InterpolationMode.BILINEAR),
+        transforms.Resize((299, 299), interpolation=transforms.InterpolationMode.BILINEAR),
         transforms.ToTensor(),
         transforms.Normalize((0.14, 0.14, 0.14), (0.18, 0.18, 0.18)),
     ]
@@ -90,7 +90,8 @@ for batch_idx, (data, label) in enumerate(train_loader):
 ## Lightning training--
 
 # create model
-model = ResNet50()
+# model = ResNet50()
+model = Inception()
 
 # # suggest learning rate
 # lr_monitor = LearningRateMonitor(logging_interval='step')
@@ -107,7 +108,7 @@ trainer = pl.Trainer(
     max_epochs=5,
     logger=pl.loggers.TensorBoardLogger("lightning_logs/", name="regression_inception"),
     log_every_n_steps=25,
-    fast_dev_run=True
+    fast_dev_run=True,
 )
 
 # specify which metrics to log

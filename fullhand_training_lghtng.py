@@ -108,7 +108,7 @@ trainer = pl.Trainer(
     max_epochs=5,
     logger=pl.loggers.TensorBoardLogger("lightning_logs/", name="regression_inception"),
     log_every_n_steps=25,
-    fast_dev_run=True,
+    fast_dev_run=False,
 )
 
 # specify which metrics to log

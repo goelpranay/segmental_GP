@@ -4,7 +4,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 import pandas as pd
 import os
-
+import numpy as np
 
 class CustomDataset(Dataset):
     def __init__(self, img_folder_path, csv_file_path, transform=None):
@@ -30,6 +30,8 @@ class CustomDataset(Dataset):
         img_name = self.df.iloc[idx]["id"]
         img_path = os.path.join(self.img_folder_path, str(img_name) + ".png")
         label = self.df.iloc[idx]["boneage"]
+        label = label.astype(np.float32)
+        label.dtype
 
         img = Image.open(img_path).convert("RGB")
         # tensor_img = torch.Tensor(img)

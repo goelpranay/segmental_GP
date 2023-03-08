@@ -13,9 +13,37 @@ class Inception(pl.LightningModule):
         num_features = self.inception.fc.in_features
         self.inception.fc = torch.nn.Linear(num_features, 1)
 
+    # def sample_uniformly(self, y):
+    #     labels = np.unique(y)
+    #     label_weights = np.ones(len(labels))
+    #     label_weights /= label_weights.sum()
+    #     label_idx = np.random.choice(len(labels), p=label_weights)
+    #     label = labels[label_idx]
+    #     idx = np.where(y == label)[0]
+    #     idx_sampled = np.random.choice(idx)
+    #     return label, idx_sampled
+
     def forward(self, x):
         logits = self.inception(x)
         return logits
+
+    # def training_step(self, batch, batch_idx):
+    #     x, y = batch
+    #     batch_size = len(y)
+    #     labels = []
+    #     idxs_sampled = []
+    #     for i in range(batch_size):
+    #         label, idx_sampled = self.sample_uniformly(y.numpy())
+    #         labels.append(label)
+    #         idxs_sampled.append(idx_sampled)
+    #     x_sampled = x[idxs_sampled]
+    #     y_sampled = torch.tensor(labels).unsqueeze(1)
+    #     logits = self(x_sampled)
+    #     loss = torch.nn.functional.cross_entropy(logits, y_sampled)
+    #     self.log('train_loss', loss)
+    #     # return loss
+    #     tensorboard_logs = {'t_train_loss': loss}
+    #     return {'loss': loss, 'log': tensorboard_logs}
 
     def training_step(self, batch, batch_idx):
         x, y = batch
@@ -23,7 +51,9 @@ class Inception(pl.LightningModule):
         y = y.unsqueeze(1)
         loss = F.mse_loss(logits, y)
         self.log('train_loss', loss)
-        return loss
+        # return loss
+        tensorboard_logs = {'t_train_loss': loss}
+        return {'loss': loss, 'log': tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
@@ -31,7 +61,11 @@ class Inception(pl.LightningModule):
         y = y.unsqueeze(1)
         loss = F.l1_loss(logits, y)
         self.log('val_loss', loss)
-        return loss
+        # return loss
+
+        tensorboard_logs = {'t_val_loss': loss}
+        return {'val_loss': loss, 'log': tensorboard_logs}
+
 
     # def validation_epoch_end(self, outputs):
     #     # Assuming outputs is a list of dictionaries with a 'val_loss' key

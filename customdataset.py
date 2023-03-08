@@ -31,7 +31,7 @@ class CustomDataset(Dataset):
         img_path = os.path.join(self.img_folder_path, str(img_name) + ".png")
         label = self.df.iloc[idx]["boneage"]
         label = label.astype(np.float32)
-        label.dtype
+        # label.dtype
 
         img = Image.open(img_path).convert("RGB")
         # tensor_img = torch.Tensor(img)

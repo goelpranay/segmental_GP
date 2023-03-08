@@ -3,7 +3,7 @@ import torchvision
 import torchvision.transforms as transforms
 from PIL import Image
 from torch.utils.data import Dataset
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler, RandomSampler
 import pandas as pd
 import os
 from torchvision import models
@@ -23,16 +23,12 @@ from pytorch_lightning.callbacks import LearningRateMonitor
 # from torch.utils.tensorboard import SummaryWriter
 
 from customdataset import CustomDataset
-# from fullhand_model_lghtng import ResNet50
+from fullhand_model_lghtng import ResNet50
 from fullhand_model_inception_lghtng import Inception
 
 # define path to the folder and csv file
 img_folder_path = "./data/fh_train"
 csv_file_path = "./data/train.csv"
-
-# # define transformations to be applied to images
-# weights = ResNet50_Weights.DEFAULT
-# preprocess = weights.transforms()
 
 transform = transforms.Compose(
     [
@@ -55,6 +51,32 @@ train_dataset, val_dataset = torch.utils.data.random_split(
     full_dataset, [train_size, val_size]
 )
 
+# # Construct a weighted random sampler
+#
+# # Extract the labels from the dataset
+# labels = np.array([label for _, label in train_dataset])
+# labels = np.round(labels).astype(np.int64)
+# num_classes = len(np.unique(labels))
+#
+# # Compute the class weights
+# class_counts = np.bincount(labels, minlength=num_classes)  # Add a small constant to avoid divide by zero
+# class_weights = 1.0 / class_counts
+#
+# # Create a mapping from label to index in class_weights
+# label_to_idx = {label: i for i, label in enumerate(np.unique(labels))}
+#
+# # Compute the sample weights
+# sample_weights = []
+# for label in labels:
+#     sample_weights.append(class_weights[label_to_idx[label]])
+#
+# # Convert class_weights and sample_weights to PyTorch tensors
+# class_weights = torch.tensor(class_weights, dtype=torch.float32)
+# sample_weights = torch.tensor(sample_weights, dtype=torch.int64)
+#
+# # Create the WeightedRandomSampler instance
+# sampler = WeightedRandomSampler(sample_weights, len(train_dataset), replacement=True)
+
 # create dataloader for the dataset
 batch_size = 64
 train_loader = DataLoader(
@@ -74,12 +96,6 @@ print(f"Std of {batch_size} images:", std)
 
 # show an image
 for batch_idx, (data, label) in enumerate(train_loader):
-    # data shape: (batch_size, channels, height, width)
-    # label shape: (batch_size, )
-
-    # show the first image in the batch
-    # print(data[0].dtype)
-    # print(data[1].dtype)
     img = data[0]
     img = transforms.ToPILImage()(img)
     img.show()
@@ -105,8 +121,8 @@ model = Inception()
 trainer = pl.Trainer(
     accelerator="gpu",
     devices=1,
-    max_epochs=5,
-    logger=pl.loggers.TensorBoardLogger("lightning_logs/", name="regression_inception"),
+    max_epochs=3,
+    logger=pl.loggers.TensorBoardLogger("lightning_logs/", name="regression"),
     log_every_n_steps=25,
     fast_dev_run=False,
 )
@@ -130,6 +146,10 @@ val_labels = []
 for _, labels in val_dataset:
     val_labels.append(labels)
 val_array = np.array(val_labels, dtype=np.float32)
-plt.scatter(val_array, predictions)
+plt.scatter(val_array, predictions, label="train subset (val) predictions")
+plt.plot([0, 224], [0, 224], color='red')
+plt.xlabel('bone age')
+plt.ylabel('full hand GP predictions')
+plt.legend()
 plt.show()
 

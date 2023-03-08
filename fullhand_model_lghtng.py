@@ -3,6 +3,7 @@ import pytorch_lightning as pl
 from torchvision.models import resnet50, ResNet50_Weights
 from torchvision.models import resnet152, ResNet152_Weights
 from torchvision.models import inception_v3, Inception_V3_Weights
+from torchvision.models import wide_resnet50_2, Wide_ResNet50_2_Weights
 
 def squared_epsilon_insensitive_loss(y_hat, y, epsilon):
     """
@@ -24,13 +25,13 @@ class ResNet50(pl.LightningModule):
         super().__init__()
 
         self.epsilon = epsilon
-
-        self.resnet = resnet50(weights=ResNet50_Weights.DEFAULT)
-        num_features = self.resnet.fc.in_features
-        self.resnet.fc = torch.nn.Linear(num_features, 1)
-        # self.resnet = resnet152(weights=ResNet152_Weights.DEFAULT) # which resnet to use?
+        #
+        # self.resnet = resnet50(weights=ResNet50_Weights.DEFAULT)
         # num_features = self.resnet.fc.in_features
         # self.resnet.fc = torch.nn.Linear(num_features, 1)
+        self.resnet = wide_resnet50_2(weights=Wide_ResNet50_2_Weights) # use wide resnet
+        num_features = self.resnet.fc.in_features
+        self.resnet.fc = torch.nn.Linear(num_features, 1)
 
 
     def forward(self, x):
@@ -39,26 +40,37 @@ class ResNet50(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
-        loss = squared_epsilon_insensitive_loss(logits, y, self.epsilon)
-        # loss = torch.nn.functional.mse_loss(logits, y.float().unsqueeze(1))
-        self.log("train_loss", loss)
-        return loss
+        # loss = squared_epsilon_insensitive_loss(logits, y, self.epsilon)
+        loss = torch.nn.functional.mse_loss(logits, y.float().unsqueeze(1))
+
+        tensorboard_logs = {'ttrain_loss': loss}
+        return {'loss': loss, 'log': tensorboard_logs}
+        # self.log("train_loss", loss, prog_bar=True)
+        # return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
         loss = torch.nn.functional.l1_loss(logits, y.float().unsqueeze(1))
-        self.log("val_loss", loss)
-        return {"val_loss": loss, "val_preds": logits}
+
+        tensorboard_logs = {'tval_loss': loss}
+        return {'val_loss': loss, 'log': tensorboard_logs}
+
+        #
+        # self.log("val_loss", loss, prog_bar=True)
+        # return {"val_loss": loss, "val_preds": logits}
 
     def validation_epoch_end(self, outputs):
         val_loss_mean = torch.stack([x["val_loss"] for x in outputs]).mean()
-        preds = torch.cat([x["val_preds"] for x in outputs], dim=0)
-        self.logger.experiment.add_scalar(
-            "val_loss_epoch", val_loss_mean, self.current_epoch
-        )
-        self.log("val_loss", val_loss_mean, prog_bar=True)
-        return {"val_loss": val_loss_mean, "val_preds": preds}
+
+        tensorboard_logs = {'tavg_val_loss': val_loss_mean}
+        return {'val_loss': val_loss_mean, 'log': tensorboard_logs}
+        # preds = torch.cat([x["val_preds"] for x in outputs], dim=0)
+        # self.logger.experiment.add_scalar(
+        #     "val_loss_epoch", val_loss_mean, self.current_epoch
+        # )
+        # self.log("val_loss", val_loss_mean, prog_bar=True)
+        # return {"val_loss": val_loss_mean, "val_preds": preds}
 
     def configure_optimizers(self):
         # optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)

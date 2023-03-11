@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 import pandas as pd
 import os
 from torchvision import models
-from torchvision.models import resnet50, ResNet50_Weights
+from torchvision.models import inception_v3, Inception_V3_Weights
 from torch.nn.functional import softmax, cross_entropy, mse_loss
 from torch.optim import Adam
 import matplotlib.pyplot as plt
@@ -22,7 +22,7 @@ from pytorch_lightning.callbacks import LearningRateMonitor
 # from torch.utils.tensorboard import SummaryWriter
 
 from customdataset import CustomDataset
-from wrist_model_lghtng import ResNetReg
+from model_inception_lghtng import Inception
 
 # define path to the folder and csv file
 img_folder_path = "./data/wrist_train"
@@ -36,7 +36,7 @@ transform = transforms.Compose(
         transforms.RandomAdjustSharpness(sharpness_factor=1.5),
         transforms.RandomRotation(degrees=(-20, 20)),
         transforms.RandomCrop(size=(500, 500)),
-        transforms.Resize((224, 224)),
+        transforms.Resize((299, 299)),
         transforms.ToTensor(),
         transforms.Normalize((0.38, 0.38, 0.38), (0.28, 0.28, 0.28)),
     ]
@@ -69,12 +69,6 @@ print(f"Std of {batch_size} images:", std)
 
 # show an image
 for batch_idx, (data, label) in enumerate(train_loader):
-    # data shape: (batch_size, channels, height, width)
-    # label shape: (batch_size, )
-
-    # show the first image in the batch
-    # print(data[0].dtype)
-    # print(data[1].dtype)
     img = data[0]
     img = transforms.ToPILImage()(img)
     img.show()
@@ -85,7 +79,8 @@ for batch_idx, (data, label) in enumerate(train_loader):
 ## Lightning training--
 
 # create model
-model = ResNetReg()
+# model = ResNetReg()
+model = Inception()
 
 # # suggest learning rate
 # lr_monitor = LearningRateMonitor(logging_interval='step')
@@ -94,14 +89,15 @@ model = ResNetReg()
 # suggested_lr = lr_finder.suggestion()
 # print(f"Suggested learning rate: {suggested_lr:.2E}")
 
-
 # create trainer
 trainer = pl.Trainer(
     accelerator="gpu",
     devices=1,
-    max_epochs=1000,
-    logger=pl.loggers.TensorBoardLogger("lightning_logs/", name="wrist_regression_resnet"),
+    max_epochs=5,
+    reload_dataloaders_every_n_epochs=True,
+    logger=pl.loggers.TensorBoardLogger("lightning_logs/", name="wrist_regression"),
     log_every_n_steps=25,
+    fast_dev_run=False,
 )
 
 # specify which metrics to log
@@ -123,6 +119,10 @@ val_labels = []
 for _, labels in val_dataset:
     val_labels.append(labels)
 val_array = np.array(val_labels, dtype=np.float32)
-plt.scatter(val_array, predictions)
+plt.scatter(val_array, predictions, label="train subset (val) predictions")
+plt.plot([0, 228], [0, 228], color='red')
+plt.xlabel('bone age')
+plt.ylabel('wrist GP predictions')
+plt.legend()
 plt.show()
 

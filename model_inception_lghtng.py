@@ -4,7 +4,7 @@ import pytorch_lightning as pl
 from torchvision.models import resnet50, ResNet50_Weights
 from torchvision.models import resnet152, ResNet152_Weights
 from torchvision.models import inception_v3, Inception_V3_Weights
-
+from torch.optim.lr_scheduler import OneCycleLR
 class Inception(pl.LightningModule):
     def __init__(self):
         super().__init__()
@@ -67,9 +67,10 @@ class Inception(pl.LightningModule):
             lr=5e-4,
         )
 
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, mode="min", factor=0.5, patience=50, verbose=True, threshold=0.001
-        )
+        # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        #     optimizer, mode="min", factor=0.5, patience=50, verbose=True, threshold=0.001
+        # )
+        scheduler = OneCycleLR(optimizer, max_lr=1e-2, total_steps=1000)
 
         return {
             "optimizer": optimizer,

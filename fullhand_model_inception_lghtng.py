@@ -107,7 +107,7 @@ class Inception(pl.LightningModule):
         )
 
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, mode="min", factor=0.5, patience=3, verbose=True, threshold=0.001
+            optimizer, mode="min", factor=0.5, patience=50, verbose=True, threshold=0.001
         )
         return {
             "optimizer": optimizer,

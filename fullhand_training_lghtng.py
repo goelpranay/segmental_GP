@@ -121,7 +121,8 @@ model = Inception()
 trainer = pl.Trainer(
     accelerator="gpu",
     devices=1,
-    max_epochs=3,
+    max_epochs=50,
+    reload_dataloaders_every_n_epochs=True,
     logger=pl.loggers.TensorBoardLogger("lightning_logs/", name="regression"),
     log_every_n_steps=25,
     fast_dev_run=False,
@@ -147,7 +148,7 @@ for _, labels in val_dataset:
     val_labels.append(labels)
 val_array = np.array(val_labels, dtype=np.float32)
 plt.scatter(val_array, predictions, label="train subset (val) predictions")
-plt.plot([0, 224], [0, 224], color='red')
+plt.plot([0, 228], [0, 228], color='red')
 plt.xlabel('bone age')
 plt.ylabel('full hand GP predictions')
 plt.legend()

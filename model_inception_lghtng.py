@@ -32,7 +32,8 @@ class Inception(pl.LightningModule):
         y = y.unsqueeze(1)
 
         # loss = F.mse_loss(logits, y)
-        loss = margin_mse_loss(logits, y)
+        # loss = margin_mse_loss(logits, y)
+        loss = F.smooth_l1_loss(logits, y, beta=8)
 
         self.log('train_loss', loss)
         # return loss
@@ -74,7 +75,7 @@ class Inception(pl.LightningModule):
         optimizer = torch.optim.Adam(
             [
                 {"params": base_params},
-                {"params": fc_params, "lr": 5e-3},
+                {"params": fc_params, "lr": 1e-2},
             ],
             lr=5e-4,
         )
